@@ -1,0 +1,222 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:rajagiri_canteen_connect/pages/home_page.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class SignupPage extends StatefulWidget {
+  const SignupPage({Key? key}) : super(key: key);
+
+  @override
+  _SignupPageState createState() => _SignupPageState();
+}
+
+class _SignupPageState extends State<SignupPage> {
+  CollectionReference Users = FirebaseFirestore.instance.collection('Users');
+  final _formkey = GlobalKey<FormState>();
+  bool isLoading = false;
+  final TextEditingController _name = TextEditingController();
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _password = TextEditingController();
+  final TextEditingController _phoneNo = TextEditingController();
+
+  createUserWithEmailAndPassword() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _email.text,
+        password: _password.text,
+      );
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "Sign-up successful!",
+            style: TextStyle(color: Colors.blue),
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => HomePage()),
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      if (e.code == 'weak-password') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "The password is too weak",
+              style: TextStyle(color: Colors.blue),
+            ),
+          ),
+        );
+      } else if (e.code == 'email-already-in-use') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "The account already exists for that email.",
+              style: TextStyle(color: Colors.blue),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      print(e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          decoration: BoxDecoration(
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(50.0),
+                child: Form(
+                  key: _formkey,
+                  child: OverflowBar(
+                    overflowSpacing: 20,
+                    children: [
+                      TextFormField(
+                        controller: _name,
+                        validator: (text) {
+                          if (text == null || text.isEmpty) {
+                            return 'Name is empty';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Name",
+                          hintStyle: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                      TextFormField(
+                        controller: _email,
+                        validator: (text) {
+                          if (text == null || text.isEmpty) {
+                            return 'Email is empty';
+                          }
+
+                          String emailPattern =
+                              r'^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$';
+                          RegExp regex = RegExp(emailPattern);
+                          if (!regex.hasMatch(text)) {
+                            return 'Invalid email format';
+                          }
+
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Email",
+                          hintStyle: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                      TextFormField(
+                        controller: _password,
+                        obscureText: true,
+                        validator: (text) {
+                          if (text == null || text.isEmpty) {
+                            return 'Password is empty';
+                          }
+
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Password",
+                          hintStyle: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                      TextFormField(
+                        controller: _phoneNo,
+                        validator: (text) {
+                          if (text == null || text.isEmpty) {
+                            return 'Phone number is empty';
+                          }
+                          // Add any additional phone number validation logic here
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Phone Number",
+                          hintStyle: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (_formkey.currentState!.validate()) {
+                              createUserWithEmailAndPassword();
+                            }
+                            await Users.add({
+                              'Name': _name.text,
+                              'Email': _email.text,
+                              'PhoneNo': _phoneNo.text,
+                            }).then((value) => print('User added'));
+                          },
+                          style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Colors.blue),
+                          ),
+                          child: isLoading
+                              ? Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  "Sign Up",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            text: "Already have an account? ",
+                            style: TextStyle(
+                              color: Colors.black,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: "Log in",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                    ],
+                  ),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
