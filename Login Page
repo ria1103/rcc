@@ -1,0 +1,184 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:rajagiri_canteen_connect/pages/sign_up.dart';
+import 'package:rajagiri_canteen_connect/pages/forgetpassword.dart';
+
+class LoginPage extends StatefulWidget {
+  const LoginPage({Key? key}) : super(key: key);
+
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _formkey = GlobalKey<FormState>();
+  bool isLoading = false;
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _password = TextEditingController();
+
+  signInWithEmailAndPassword() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _email.text,
+        password: _password.text,
+      );
+      setState(() {
+        isLoading = false;
+      });
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      if (e.code == 'user-not-found') {
+        return ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("No user found for that email."),
+          ),
+        );
+      } else if (e.code == 'wrong-password') {
+        return ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Wrong password provided for that user."),
+          ),
+        );
+      }
+    }
+  }
+
+  void navigateToSignUpPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => SignupPage()),
+    );
+  }
+
+  void navigateToForgetPasswordPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => ForgetPasswordPage()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          decoration: BoxDecoration(
+            color: Colors.white,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Align(
+                alignment: Alignment(0, -0.8),
+                child: Image.asset("images/rcclogo2.PNG"),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(50.0),
+                child: Form(
+                  key: _formkey,
+                  child: OverflowBar(
+                    overflowSpacing: 20,
+                    children: [
+                      TextFormField(
+                        controller: _email,
+                        validator: (text) {
+                          if (text == null || text.isEmpty) {
+                            return 'Email is empty';
+                          }
+                          return null;
+                        },
+                        decoration: const InputDecoration(
+                          hintText: "Email",
+                          hintStyle: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                      TextFormField(
+                        controller: _password,
+                        obscureText: true,
+                        validator: (text) {
+                          if (text == null || text.isEmpty) {
+                            return 'Password is empty';
+                          }
+                          return null;
+                        },
+                        decoration: const InputDecoration(
+                          hintText: "Password",
+                          hintStyle: TextStyle(color: Colors.blue),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: Container(
+                          child: TextButton(
+                            onPressed: navigateToForgetPasswordPage,
+                            child: Text(
+                              "Forgot Password?",
+                              style: TextStyle(
+                                color: Colors.blueGrey,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_formkey.currentState!.validate()) {
+                              signInWithEmailAndPassword();
+                            }
+                          },
+                          style: ButtonStyle(
+                            backgroundColor:
+                                MaterialStateProperty.all(Colors.blue),
+                          ),
+                          child: isLoading
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  "Login",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: navigateToSignUpPage,
+                child: RichText(
+                  text: TextSpan(
+                    text: "Didn't sign up yet? ",
+                    style: TextStyle(
+                      color: Colors.black,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: "Sign Up",
+                        style: TextStyle(
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
